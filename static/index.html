@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DocScanner AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    html,
+    body {
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      background: radial-gradient(circle at 50% 0%, rgba(20, 184, 166, 0.18), transparent 60%), #061016;
+      overscroll-behavior-y: none;
+    }
+  </style>
+</head>
+
+<body class="text-slate-100 h-[100dvh] max-h-[100dvh] flex flex-col antialiased overflow-hidden">
+
+  <!-- Header -->
+  <header class="bg-slate-900/80 backdrop-blur-md border-b border-teal-500/20 sticky top-0 z-30 px-4 py-2.5 shrink-0">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div
+          class="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 via-teal-400 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-500/30 ring-1 ring-teal-300/40">
+          <i class="fa-solid fa-file-contract text-slate-950 text-sm font-bold"></i>
+        </div>
+        <div>
+          <h1
+            class="text-sm font-bold leading-tight bg-gradient-to-r from-teal-200 via-teal-100 to-white bg-clip-text text-transparent">
+            DocScanner</h1>
+          <p class="text-[11px] text-teal-300/60 font-medium leading-none">Quét tài liệu dễ dàng</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-xl w-full mx-auto px-4 py-3 flex flex-col space-y-3 overflow-y-auto">
+
+    <!-- Mode Selector -->
+    <div
+      class="bg-slate-900/90 p-1.5 rounded-2xl border border-teal-500/20 shadow-lg shadow-teal-950/40 flex items-center justify-between text-xs font-semibold">
+      <button type="button"
+        class="mode-btn flex-1 py-2 rounded-xl text-center transition-all bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-bold shadow-md shadow-teal-500/30"
+        data-mode="bw">
+        <i class="fa-solid fa-file-lines mr-1.5"></i>Đen trắng
+      </button>
+      <button type="button"
+        class="mode-btn flex-1 py-2 rounded-xl text-center transition-all text-slate-400 hover:text-teal-200"
+        data-mode="gray">
+        <i class="fa-solid fa-circle-half-stroke mr-1.5"></i>Thang xám
+      </button>
+      <button type="button"
+        class="mode-btn flex-1 py-2 rounded-xl text-center transition-all text-slate-400 hover:text-teal-200"
+        data-mode="color">
+        <i class="fa-solid fa-palette mr-1.5"></i>Giữ màu
+      </button>
+    </div>
+
+    <!-- Aspect Ratio Selector -->
+    <div class="flex items-center justify-between px-1 text-[11px] font-medium text-teal-200/70">
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-crop-simple text-teal-400"></i>Tỉ lệ khung
+        hình:</span>
+      <div class="flex space-x-1.5">
+        <button type="button"
+          class="ratio-btn px-2.5 py-1 rounded-lg transition-all bg-teal-500/20 text-teal-200 border border-teal-500/40 font-semibold shadow-sm"
+          data-ratio="auto">Tự động (3D)</button>
+        <button type="button"
+          class="ratio-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-teal-200 border border-transparent"
+          data-ratio="a4">Khổ A4</button>
+      </div>
+    </div>
+
+    <!-- Hidden File Inputs -->
+    <!-- capture="environment" trực tiếp kích hoạt camera sau của điện thoại -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" />
+    <input type="file" id="galleryInput" accept="image/*" class="hidden" />
+
+    <!-- Action Buttons (Camera / Gallery) -->
+    <div id="captureSection" class="flex-1 flex flex-col justify-center my-auto py-2">
+      <div class="grid grid-cols-2 gap-3">
+        <button id="openCameraBtn"
+          class="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 rounded-2xl shadow-xl shadow-teal-500/25 ring-1 ring-teal-300/30 active:scale-95 transition-all">
+          <div class="w-12 h-12 rounded-full bg-slate-950/25 flex items-center justify-center mb-2 shadow-inner">
+            <i class="fa-solid fa-camera text-2xl text-white"></i>
+          </div>
+          <span class="text-sm font-bold text-white">Chụp Camera</span>
+          <span class="text-[11px] text-teal-100/80 mt-0.5">Camera điện thoại</span>
+        </button>
+
+        <button id="openGalleryBtn"
+          class="flex flex-col items-center justify-center p-5 bg-slate-900/90 hover:bg-slate-850 border border-teal-500/20 hover:border-teal-400/50 rounded-2xl shadow-lg shadow-black/40 active:scale-95 transition-all">
+          <div
+            class="w-12 h-12 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-2">
+            <i class="fa-solid fa-images text-xl text-teal-300"></i>
+          </div>
+          <span class="text-sm font-bold text-slate-200">Bộ sưu tập</span>
+          <span class="text-[11px] text-teal-300/50 mt-0.5">Chọn từ máy</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingSection"
+      class="hidden bg-slate-900/90 border border-teal-500/30 rounded-2xl p-8 flex flex-col items-center justify-center space-y-4 shadow-2xl shadow-teal-950/50">
+      <div class="relative w-16 h-16">
+        <div class="w-16 h-16 border-4 border-teal-500/20 border-t-teal-400 rounded-full animate-spin"></div>
+        <i
+          class="fa-solid fa-wand-magic-sparkles text-teal-400 absolute inset-0 m-auto flex items-center justify-center text-lg animate-pulse"></i>
+      </div>
+      <div class="text-center">
+        <p class="text-sm font-bold text-teal-200">Đang quét tài liệu...</p>
+        <p class="text-xs text-teal-300/60 mt-1">Đang dò 4 góc, nắn phối cảnh 3D & khử bóng</p>
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorAlert"
+      class="hidden p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs flex items-center space-x-2.5">
+      <i class="fa-solid fa-circle-exclamation text-rose-400 text-base"></i>
+      <span id="errorMessage" class="flex-1">Có lỗi xảy ra khi xử lý ảnh.</span>
+    </div>
+
+    <!-- Result Section -->
+    <div id="resultSection" class="hidden flex-1 flex flex-col space-y-3">
+      <!-- Tabs for Original / Scanned -->
+      <div
+        class="flex items-center justify-between bg-slate-900/90 p-1 rounded-xl border border-teal-500/25 text-xs shadow-md">
+        <button id="viewScannedTab"
+          class="flex-1 py-1.5 rounded-lg font-bold bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 transition-all shadow-md shadow-teal-500/20">
+          <i class="fa-solid fa-check mr-1.5"></i>Kết quả Scan
+        </button>
+        <button id="viewOriginalTab"
+          class="flex-1 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-teal-200 transition-all">
+          <i class="fa-solid fa-image mr-1.5"></i>Ảnh gốc
+        </button>
+      </div>
+
+      <!-- Image Preview Container -->
+      <div
+        class="bg-slate-950/80 rounded-2xl border border-teal-500/20 p-2 flex items-center justify-center min-h-[340px] max-h-[500px] overflow-hidden relative shadow-2xl">
+        <button id="rotateBtn" title="Xoay 90 độ"
+          class="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 border border-teal-500/40 text-teal-300 text-xs font-semibold backdrop-blur shadow-lg flex items-center gap-1.5 active:scale-95 transition-all">
+          <i class="fa-solid fa-rotate-right"></i> Xoay 90°
+        </button>
+        <img id="scannedImg"
+          class="max-h-[480px] w-auto max-w-full rounded-lg object-contain shadow-2xl transition-transform duration-200"
+          alt="Scanned Document" />
+        <img id="originalImg" class="hidden max-h-[480px] w-auto max-w-full rounded-lg object-contain"
+          alt="Original Document" />
+      </div>
+
+      <!-- Fine-Tuning Sliders -->
+      <div id="adjustPanel" class="hidden bg-slate-900/70 border border-teal-500/15 rounded-xl px-3 py-2.5 space-y-2">
+        <div class="flex items-center justify-between text-[11px] text-teal-200/70 font-medium">
+          <span><i class="fa-solid fa-sliders text-teal-400 mr-1"></i>Tinh chỉnh ảnh</span>
+          <button id="resetAdjustBtn" class="text-teal-400 hover:text-teal-200 text-[10px] transition-all">
+            <i class="fa-solid fa-rotate-left"></i> Đặt lại
+          </button>
+        </div>
+        <!-- Brightness -->
+        <div class="flex items-center gap-2 text-[11px]">
+          <i class="fa-solid fa-sun text-teal-300 w-3 text-center"></i>
+          <span class="text-slate-400 w-16 shrink-0">Độ sáng</span>
+          <input type="range" id="brightnessSlider" min="50" max="200" value="100" step="2"
+            class="flex-1 h-1.5 rounded-full accent-teal-400 cursor-pointer">
+          <span id="brightnessVal" class="text-teal-200 w-8 text-right font-mono">100</span>
+        </div>
+        <!-- Contrast -->
+        <div class="flex items-center gap-2 text-[11px]">
+          <i class="fa-solid fa-circle-half-stroke text-teal-300 w-3 text-center"></i>
+          <span class="text-slate-400 w-16 shrink-0">Tương phản</span>
+          <input type="range" id="contrastSlider" min="50" max="250" value="100" step="2"
+            class="flex-1 h-1.5 rounded-full accent-teal-400 cursor-pointer">
+          <span id="contrastVal" class="text-teal-200 w-8 text-right font-mono">100</span>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="space-y-2 pt-1">
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="downloadBtn"
+            class="py-3 px-3 rounded-xl bg-gradient-to-r from-teal-500 via-teal-600 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-500/25 active:scale-95 transition-all disabled:opacity-75 disabled:pointer-events-none">
+            <i class="fa-solid fa-image"></i> Lưu ảnh PNG
+          </button>
+          <button id="exportPdfBtn"
+            class="py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-75 disabled:pointer-events-none">
+            <i class="fa-solid fa-file-pdf"></i> Xuất file PDF
+          </button>
+        </div>
+        <button id="rescanBtn"
+          class="w-full py-2.5 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-850 border border-teal-500/30 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-all">
+          <i class="fa-solid fa-arrow-rotate-left text-teal-400"></i> Quét ảnh khác
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Script -->
+  <script>
+    let currentMode = "bw";
+    let currentRatio = "auto";
+    let originalFile = null;
+    let currentBrightness = 100;
+    let currentContrast = 100;
+    let baseScannedUrl = null;
+
+    const cameraInput = document.getElementById("cameraInput");
+    const galleryInput = document.getElementById("galleryInput");
+    const openCameraBtn = document.getElementById("openCameraBtn");
+    const openGalleryBtn = document.getElementById("openGalleryBtn");
+
+    const captureSection = document.getElementById("captureSection");
+    const loadingSection = document.getElementById("loadingSection");
+    const resultSection = document.getElementById("resultSection");
+    const errorAlert = document.getElementById("errorAlert");
+    const errorMessage = document.getElementById("errorMessage");
+
+    const scannedImg = document.getElementById("scannedImg");
+    const originalImg = document.getElementById("originalImg");
+    const viewScannedTab = document.getElementById("viewScannedTab");
+    const viewOriginalTab = document.getElementById("viewOriginalTab");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const exportPdfBtn = document.getElementById("exportPdfBtn");
+    const rotateBtn = document.getElementById("rotateBtn");
+    const rescanBtn = document.getElementById("rescanBtn");
+
+    // --- Contrast & Brightness Sliders ---
+    const brightnessSlider = document.getElementById("brightnessSlider");
+    const contrastSlider = document.getElementById("contrastSlider");
+    const brightnessVal = document.getElementById("brightnessVal");
+    const contrastVal = document.getElementById("contrastVal");
+    const resetAdjustBtn = document.getElementById("resetAdjustBtn");
+    const adjustPanel = document.getElementById("adjustPanel");
+
+    function applyFilters() {
+      scannedImg.style.filter = `brightness(${currentBrightness}%) contrast(${currentContrast}%)`;
+    }
+
+    function resetSliders() {
+      brightnessSlider.value = 100;
+      contrastSlider.value = 100;
+      currentBrightness = 100;
+      currentContrast = 100;
+      brightnessVal.textContent = "100";
+      contrastVal.textContent = "100";
+    }
+
+    brightnessSlider.addEventListener("input", () => {
+      currentBrightness = parseInt(brightnessSlider.value);
+      brightnessVal.textContent = currentBrightness;
+      applyFilters();
+    });
+
+    contrastSlider.addEventListener("input", () => {
+      currentContrast = parseInt(contrastSlider.value);
+      contrastVal.textContent = currentContrast;
+      applyFilters();
+    });
+
+    resetAdjustBtn.addEventListener("click", () => {
+      resetSliders();
+      applyFilters();
+    });
+
+    // Bake current CSS filters into a canvas and return a data URL
+    function getBakedUrl() {
+      return new Promise((resolve) => {
+        const imgEl = new Image();
+        imgEl.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = imgEl.naturalWidth;
+          canvas.height = imgEl.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.filter = `brightness(${currentBrightness}%) contrast(${currentContrast}%)`;
+          ctx.drawImage(imgEl, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        imgEl.src = baseScannedUrl || scannedImg.src;
+      });
+    }
+
+    // Mode Buttons
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mode-btn").forEach(b => {
+          b.className = "mode-btn flex-1 py-2 rounded-xl text-center transition-all text-slate-400 hover:text-teal-200";
+        });
+        btn.className = "mode-btn flex-1 py-2 rounded-xl text-center transition-all bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-bold shadow-md shadow-teal-500/30";
+        currentMode = btn.dataset.mode;
+
+        if (originalFile && !loadingSection.classList.contains("hidden")) return;
+        if (originalFile) processFile(originalFile);
+      });
+    });
+
+    // Ratio Buttons
+    document.querySelectorAll(".ratio-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".ratio-btn").forEach(b => {
+          b.className = "ratio-btn px-2.5 py-1 rounded-lg transition-all text-slate-400 hover:text-teal-200 border border-transparent";
+        });
+        btn.className = "ratio-btn px-2.5 py-1 rounded-lg transition-all bg-teal-500/20 text-teal-200 border border-teal-500/40 font-semibold shadow-sm";
+        currentRatio = btn.dataset.ratio;
+
+        if (originalFile && !loadingSection.classList.contains("hidden")) return;
+        if (originalFile) processFile(originalFile);
+      });
+    });
+
+    // Trigger Camera & Gallery
+    openCameraBtn.addEventListener("click", () => cameraInput.click());
+    openGalleryBtn.addEventListener("click", () => galleryInput.click());
+
+    cameraInput.addEventListener("change", (e) => handleFileSelected(e.target.files));
+    galleryInput.addEventListener("change", (e) => handleFileSelected(e.target.files));
+
+    function handleFileSelected(files) {
+      if (!files || files.length === 0) return;
+      originalFile = files[0];
+
+      // Preview ảnh gốc
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        originalImg.src = e.target.result;
+      };
+      reader.readAsDataURL(originalFile);
+
+      processFile(originalFile);
+    }
+
+    async function processFile(file) {
+      errorAlert.classList.add("hidden");
+      loadingSection.classList.remove("hidden");
+      resultSection.classList.add("hidden");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("mode", currentMode);
+      formData.append("ratio", currentRatio);
+
+      try {
+        const response = await fetch("/api/scan", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || "Không thể xử lý ảnh tài liệu.");
+        }
+
+        const blob = await response.blob();
+        const scannedUrl = URL.createObjectURL(blob);
+
+        baseScannedUrl = scannedUrl;
+        scannedImg.src = scannedUrl;
+
+        // Reset sliders cho ảnh mới
+        resetSliders();
+        applyFilters();
+
+        // Chuyển sang hiển thị kết quả
+        loadingSection.classList.add("hidden");
+        resultSection.classList.remove("hidden");
+        showScannedView();
+
+      } catch (err) {
+        loadingSection.classList.add("hidden");
+        errorMessage.textContent = err.message || "Lỗi xử lý ảnh.";
+        errorAlert.classList.remove("hidden");
+      }
+    }
+
+    // Tab switcher between Scanned vs Original
+    viewScannedTab.addEventListener("click", showScannedView);
+    viewOriginalTab.addEventListener("click", showOriginalView);
+
+    function showScannedView() {
+      scannedImg.classList.remove("hidden");
+      originalImg.classList.add("hidden");
+      adjustPanel.classList.remove("hidden");
+      viewScannedTab.className = "flex-1 py-1.5 rounded-lg font-bold bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 transition-all shadow-md shadow-teal-500/20";
+      viewOriginalTab.className = "flex-1 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-teal-200 transition-all";
+    }
+
+    function showOriginalView() {
+      scannedImg.classList.add("hidden");
+      originalImg.classList.remove("hidden");
+      adjustPanel.classList.add("hidden");
+      viewScannedTab.className = "flex-1 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-teal-200 transition-all";
+      viewOriginalTab.className = "flex-1 py-1.5 rounded-lg font-bold bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 transition-all shadow-md shadow-teal-500/20";
+    }
+
+    // Rotate 90 degrees clockwise
+    rotateBtn.addEventListener("click", () => {
+      if (!scannedImg.src) return;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.height;
+        canvas.height = img.width;
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        const rotatedUrl = canvas.toDataURL("image/png");
+        baseScannedUrl = rotatedUrl;
+        scannedImg.src = rotatedUrl;
+        applyFilters();
+      };
+      img.src = baseScannedUrl || scannedImg.src;
+    });
+
+    // Helper functions for button loading states
+    function setButtonLoading(btn, loadingText) {
+      btn.disabled = true;
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> ${loadingText}`;
+    }
+
+    function setButtonSuccess(btn, successText, originalHtml) {
+      btn.innerHTML = `<i class="fa-solid fa-check text-emerald-300"></i> ${successText}`;
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      }, 1500);
+    }
+
+    function setButtonReset(btn, originalHtml) {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
+
+    // Download PNG with loading state (bakes brightness/contrast filters)
+    downloadBtn.addEventListener("click", async () => {
+      if (!scannedImg.src) return;
+      const originalHtml = '<i class="fa-solid fa-image"></i> Lưu ảnh PNG';
+      setButtonLoading(downloadBtn, "Đang tải...");
+
+      try {
+        const bakedUrl = await getBakedUrl();
+        const a = document.createElement("a");
+        a.href = bakedUrl;
+        a.download = "scanned_document.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setButtonSuccess(downloadBtn, "Đã tải xong!", originalHtml);
+      } catch (err) {
+        console.error(err);
+        setButtonReset(downloadBtn, originalHtml);
+      }
+    });
+
+    // Export to A4 PDF with loading state (bakes brightness/contrast filters)
+    exportPdfBtn.addEventListener("click", async () => {
+      if (!scannedImg.src) return;
+      if (!window.jspdf) {
+        alert("Thư viện PDF đang tải, vui lòng thử lại sau giây lát.");
+        return;
+      }
+      const originalHtml = '<i class="fa-solid fa-file-pdf"></i> Xuất file PDF';
+      setButtonLoading(exportPdfBtn, "Đang tạo PDF...");
+
+      try {
+        const bakedUrl = await getBakedUrl();
+        const { jsPDF } = window.jspdf;
+        const img = new Image();
+        img.onload = () => {
+          const isLandscape = img.width > img.height;
+          const pdf = new jsPDF({
+            orientation: isLandscape ? "landscape" : "portrait",
+            unit: "mm",
+            format: "a4"
+          });
+          const pageWidth = isLandscape ? 297 : 210;
+          const pageHeight = isLandscape ? 210 : 297;
+          pdf.addImage(img, "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
+          pdf.save("scanned_document.pdf");
+          setButtonSuccess(exportPdfBtn, "Đã xuất PDF!", originalHtml);
+        };
+        img.onerror = () => setButtonReset(exportPdfBtn, originalHtml);
+        img.src = bakedUrl;
+      } catch (err) {
+        console.error(err);
+        setButtonReset(exportPdfBtn, originalHtml);
+      }
+    });
+
+    // Reset to scan another
+    rescanBtn.addEventListener("click", () => {
+      cameraInput.value = "";
+      galleryInput.value = "";
+      originalFile = null;
+      baseScannedUrl = null;
+      resetSliders();
+      scannedImg.style.filter = "";
+      resultSection.classList.add("hidden");
+      errorAlert.classList.add("hidden");
+      document.querySelector("main").scrollTop = 0;
+    });
+  </script>
+</body>
+
+</html>
